@@ -1,0 +1,377 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Refocus - In Game</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+
+<style>
+  :root {
+    --font-h: 'Barlow Condensed', sans-serif;
+    --font-b: 'Barlow', sans-serif;
+    --snap:  cubic-bezier(.12, 1, .28, 1);
+    --land:  cubic-bezier(.2, .9, .2, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: transparent;
+    font-family: var(--font-b);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .wrap {
+    width: 420px;
+    position: relative;
+    overflow: visible;
+  }
+
+  /* =========================================
+     BASE TOAST (Layout & Wipe Animation)
+     ========================================= */
+  .toast {
+    width: 420px;
+    position: relative;
+    overflow: hidden;
+
+    /* TACTICAL WIPE ENTRANCE ANIMATION */
+    opacity: 0;
+    transform: translateX(-20px);
+    clip-path: inset(0 100% 0 0); /* Hides it from the right */
+    transition:
+      opacity   300ms var(--land),
+      transform 550ms var(--snap),
+      clip-path 550ms var(--snap),
+      box-shadow 640ms var(--land);
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(0);
+    clip-path: inset(0 0 0 0); /* Reveals fully */
+  }
+
+  .inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 14px 13px 15px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .top-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
+
+  .brand-row { display: flex; align-items: center; gap: 7px; }
+
+  .brand-name {
+    font-family: var(--font-h); font-size: 9.5px; font-weight: 700;
+    letter-spacing: 2.4px; text-transform: uppercase; line-height: 1;
+  }
+
+  .altx-badge {
+    font-family: var(--font-h); font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 2px 7px; white-space: nowrap; line-height: 1.5;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.20);
+    color: rgba(255,255,255,0.60);
+  }
+
+  .type-badge {
+    font-family: var(--font-h); font-size: 8.5px; font-weight: 700;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    padding: 2px 6px; white-space: nowrap; line-height: 1.5;
+  }
+
+  .msg {
+    font-family: var(--font-h); font-size: 16px; font-weight: 700;
+    letter-spacing: 0.2px; line-height: 1.24;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    opacity: 0; transform: translateY(8px);
+    transition: opacity 340ms var(--land) 180ms, transform 420ms var(--snap) 180ms;
+  }
+  .toast.show .msg { opacity: 1; transform: translateY(0); }
+
+  .icon {
+    width: 30px; height: 30px; overflow: hidden; flex: 0 0 auto; margin-top: 2px;
+    opacity: 0; transform: scale(0.88);
+    transition: opacity 300ms var(--land) 160ms, transform 360ms var(--snap) 160ms, box-shadow 500ms;
+  }
+  .toast.show .icon { opacity: 1; transform: scale(1); }
+  .icon img { width: 100%; height: 100%; display: block; object-fit: cover; }
+
+  /* Progress Bar Base */
+  .bar-track {
+    position: absolute; left: 3px; right: 0; bottom: 0; height: 2px; z-index: 6;
+  }
+  .bar-fill {
+    height: 100%; width: 100%; transform-origin: left center; transform: scaleX(1);
+    animation: none;
+  }
+  .run .bar-fill { animation: barShrink linear forwards; }
+  @keyframes barShrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+  /* Accent Stripe Base */
+  .toast::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; z-index: 5; }
+  /* Scanlines Base */
+  .toast::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+
+
+  /* =========================================
+     THEME 1: DEFAULT (Glassmorphism & Sharp Corners)
+     ========================================= */
+  body.theme-default {
+    --orange: #e6a587; --coral: #f0967a; --pink: #eb5062;
+    --glow-coral: rgba(240,150,122,0.38); --glow-pink: rgba(235,80,98,0.52);
+  }
+  body.theme-default .toast {
+    border-radius: 0px; /* Sharp corners */
+    background: radial-gradient(360px 160px at 92% -10%, rgba(240,150,122,0.13), transparent 58%),
+                radial-gradient(280px 180px at 8% 110%, rgba(235,80,98,0.11), transparent 62%),
+                linear-gradient(160deg, rgba(8,6,6,0.96), rgba(2,1,1,0.98));
+    backdrop-filter: blur(14px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 22px 55px rgba(0,0,0,0.75), inset 0 0 0 1px rgba(255,255,255,0.035);
+  }
+  body.theme-default .toast.show {
+    box-shadow: 0 26px 60px rgba(0,0,0,0.80), inset 0 0 0 1px rgba(255,255,255,0.05), inset 0 0 0 1px rgba(235,80,98,0.22), 0 0 32px rgba(235,80,98,0.18), 0 0 18px rgba(240,150,122,0.14);
+  }
+  body.theme-default .toast::before {
+    width: 3px; background: linear-gradient(180deg, var(--orange) 0%, var(--coral) 40%, var(--pink) 100%);
+    box-shadow: 0 0 18px var(--glow-coral), 0 0 8px var(--glow-pink);
+  }
+  body.theme-default .toast::after { background-image: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.005) 3px, rgba(255,255,255,0.005) 4px); }
+  body.theme-default .icon { border-radius: 0px; /* Sharp corners */ border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.40); box-shadow: inset 0 0 0 1px rgba(240,150,122,0.12), 0 5px 14px rgba(0,0,0,0.55); }
+  body.theme-default .type-badge { border-radius: 0px; /* Sharp corners */ background: linear-gradient(135deg, rgba(240,150,122,0.10), rgba(235,80,98,0.13)); border: 1px solid rgba(235,80,98,0.28); color: rgba(255,185,175,0.85); }
+  body.theme-default .brand-name { color: rgba(255,255,255,0.40); }
+  body.theme-default .msg { color: rgba(255,255,255,0.97); text-shadow: 0 1px 4px rgba(0,0,0,0.50); }
+  body.theme-default .bar-track { background: rgba(255,255,255,0.05); }
+  body.theme-default .bar-fill { background: linear-gradient(90deg, var(--orange), var(--coral), var(--pink)); box-shadow: 0 0 10px var(--glow-pink), 0 0 5px var(--glow-coral); }
+
+
+  /* =========================================
+     THEME 2: TACTICAL (Cyan & Sharp)
+     ========================================= */
+  body.theme-tactical {
+    --orange: #00e5ff; --coral: #00aaff; --pink: #0066ff;
+    --glow-coral: rgba(0,229,255,0.40); --glow-pink: rgba(0,102,255,0.50);
+  }
+  body.theme-tactical .toast {
+    border-radius: 0px;
+    background: linear-gradient(135deg, rgba(4,12,20,0.96), rgba(2,6,10,0.98));
+    border: 1px solid rgba(0,229,255,0.3);
+    border-left: none;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.85);
+  }
+  body.theme-tactical .toast.show {
+    box-shadow: 0 20px 50px rgba(0,0,0,0.90), 0 0 25px rgba(0,229,255,0.15), inset 0 0 15px rgba(0,229,255,0.05);
+  }
+  body.theme-tactical .toast::before {
+    width: 4px; background: linear-gradient(180deg, var(--orange), var(--pink));
+    box-shadow: 0 0 15px var(--glow-coral);
+  }
+  body.theme-tactical .toast::after { background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,229,255,0.015) 2px, rgba(0,229,255,0.015) 3px); }
+  body.theme-tactical .icon { border-radius: 0px; border: 1px solid rgba(0,229,255,0.4); background: rgba(0,20,30,0.6); box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+  body.theme-tactical .type-badge { border-radius: 0px; background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.4); color: #00e5ff; text-shadow: 0 0 5px rgba(0,229,255,0.5); }
+  body.theme-tactical .brand-name { color: rgba(0,229,255,0.40); }
+  body.theme-tactical .msg { color: #e0faff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+  body.theme-tactical .bar-track { background: rgba(0,229,255,0.05); }
+  body.theme-tactical .bar-fill { background: linear-gradient(90deg, var(--orange), var(--pink)); box-shadow: 0 0 10px var(--glow-coral); }
+
+
+  /* =========================================
+     THEME 3: MINIMAL (Pure Dark, No Glows)
+     ========================================= */
+  body.theme-minimal {
+    --orange: #ffffff; --coral: #dddddd; --pink: #aaaaaa;
+  }
+  body.theme-minimal .toast {
+    border-radius: 4px;
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+  }
+  body.theme-minimal .toast.show { box-shadow: 0 15px 40px rgba(0,0,0,0.95); }
+  body.theme-minimal .toast::before { width: 3px; background: #ffffff; box-shadow: none; }
+  body.theme-minimal .toast::after { display: none; }
+  body.theme-minimal .ambient, body.theme-minimal .sweep { display: none; }
+  body.theme-minimal .icon { border-radius: 3px; border: 1px solid #333; background: #111; box-shadow: none; }
+  body.theme-minimal .type-badge { border-radius: 2px; background: #1a1a1a; border: 1px solid #333; color: #ccc; }
+  body.theme-minimal .brand-name { color: #555; }
+  body.theme-minimal .msg { color: #f0f0f0; text-shadow: none; }
+  body.theme-minimal .bar-track { background: #1a1a1a; }
+  body.theme-minimal .bar-fill { background: #ffffff; box-shadow: none; }
+
+
+  /* =========================================
+     THEME 4: RADIANT (Pristine White & Gold)
+     ========================================= */
+  body.theme-radiant {
+    /* Radiant Rank Colors: Pure White -> Brilliant Gold -> Deep Brass */
+    --orange: #ffffff; /* Pure White */
+    --coral:  #f3c853; /* Brilliant Gold */
+    --pink:   #c29b38; /* Deep Brass/Gold */
+    --glow-coral: rgba(243, 200, 83, 0.4); /* Gold glow */
+    --glow-pink:  rgba(255, 255, 255, 0.3);  /* White glow */
+  }
+  body.theme-radiant .toast {
+    border-radius: 0px; /* Sharp corners */
+    /* Premium dark olive/grey background to match the screenshot backdrop */
+    background: linear-gradient(135deg, rgba(30, 28, 22, 0.95), rgba(15, 14, 10, 0.98)),
+                linear-gradient(to right, rgba(255,255,255,0.05), rgba(243,200,83,0.05));
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-right-color: rgba(243, 200, 83, 0.4);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+  }
+  body.theme-radiant .toast.show {
+    /* Pristine White & Gold Glow */
+    box-shadow: 0 25px 60px rgba(0,0,0,0.95),
+                0 0 30px rgba(255, 255, 255, 0.15),
+                0 0 15px rgba(243, 200, 83, 0.2),
+                inset 0 0 20px rgba(255, 255, 255, 0.05);
+  }
+  body.theme-radiant .toast::before {
+    width: 4px;
+    background: linear-gradient(180deg, var(--orange), var(--coral), var(--pink));
+    box-shadow: 0 0 20px var(--glow-pink), 0 0 10px var(--glow-coral);
+  }
+  body.theme-radiant .toast::after {
+    /* Subtle crystalline facet pattern */
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.02) 5px, rgba(255,255,255,0.02) 6px),
+                      repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(243,200,83,0.015) 5px, rgba(243,200,83,0.015) 6px);
+  }
+  body.theme-radiant .icon {
+    border-radius: 0px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: linear-gradient(135deg, rgba(60,55,40,0.7), rgba(30,25,15,0.7));
+    box-shadow: 0 5px 15px rgba(0,0,0,0.6), inset 0 0 10px rgba(255,255,255,0.2);
+  }
+  body.theme-radiant .type-badge {
+    border-radius: 0px;
+    background: linear-gradient(to right, rgba(255,255,255,0.15), rgba(243,200,83,0.15));
+    border: 1px solid rgba(243, 200, 83, 0.5);
+    color: #ffffff;
+    text-shadow: 0 0 8px rgba(255,255,255,0.6);
+  }
+  body.theme-radiant .brand-name { color: rgba(243, 200, 83, 0.6); }
+  body.theme-radiant .msg { color: #ffffff; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 6px rgba(255,255,255,0.2); }
+  body.theme-radiant .bar-track { background: rgba(255, 255, 255, 0.1); }
+  body.theme-radiant .bar-fill {
+    background: linear-gradient(90deg, var(--orange), var(--coral), var(--pink));
+    box-shadow: 0 0 15px var(--glow-pink), 0 0 5px var(--glow-coral);
+  }
+  /* Radiant Ambient Glow */
+  body.theme-radiant .ambient {
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(243,200,83,0.05) 40%, transparent 70%);
+  }
+
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="toast" id="toast">
+
+      <div class="sweep"></div>
+      <div class="ambient"></div>
+
+      <div class="inner">
+        <div class="icon">
+          <img src="launcher_icon.ico" alt="">
+        </div>
+        <div class="content">
+          <div class="top-row">
+            <div class="brand-row">
+                <div class="brand-name">REFOCUS</div>
+                <div class="altx-badge">ALT+X</div>
+              </div>
+            <div class="type-badge" id="badge">Focus</div>
+          </div>
+          <div class="msg" id="msg">...</div>
+        </div>
+      </div>
+
+      <div class="bar-track">
+        <div class="bar-fill" id="barFill"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <audio id="tipSound" src="tip.mp3" preload="auto"></audio>
+
+<script>
+  var toast    = document.getElementById("toast");
+  var wrap     = document.querySelector(".wrap");
+  var tipSound = document.getElementById("tipSound");
+
+  function playTipSound() {
+    try { tipSound.volume = 0.2; tipSound.currentTime = 0; tipSound.play(); } catch(e) {}
+  }
+  var badge   = document.getElementById("badge");
+  var msg     = document.getElementById("msg");
+  var barFill = document.getElementById("barFill");
+
+  function hasWord(hay, needle) {
+    return String(hay || "").toLowerCase().indexOf(String(needle || "").toLowerCase()) !== -1;
+  }
+
+  function setTypeClass(type) {
+    var t = String(type || "FOCUS").toLowerCase();
+    if (hasWord(t, "death"))     badge.textContent = "DEATH";
+    else if (hasWord(t, "tilt")) badge.textContent = "TILT";
+    else                         badge.textContent = String(type || "FOCUS").toUpperCase();
+  }
+
+  // Receives theme, scale, opacity, and soundEnabled from background.js
+  function showToast(text, type, durationMs, theme, scale, opacity, soundEnabled) {
+    var dur = Number(durationMs || 6500);
+    var s = (typeof scale === "number" && scale > 0) ? scale : 1;
+
+    // Reverting to transform: scale() for better Overwolf transparent compositing compatibility
+    document.documentElement.style.transform = "scale(" + s + ")";
+    document.documentElement.style.transformOrigin = "top left";
+    wrap.style.opacity = (typeof opacity === "number" && opacity >= 0.3) ? opacity : 1;
+    if (soundEnabled) playTipSound();
+
+    // 1. Apply the selected theme to the body
+    document.body.className = "theme-" + (theme || "default");
+
+    msg.textContent = text || "...";
+    setTypeClass(type);
+
+    /* Reset entry animation */
+    toast.classList.remove("show");
+    toast.offsetHeight; // trigger reflow
+
+    /* Reset progress bar */
+    toast.classList.remove("run");
+    barFill.style.animation = "none";
+    barFill.offsetHeight; // trigger reflow
+    barFill.style.animation = "";
+
+    barFill.style.animationDuration = (dur / 1000).toFixed(2) + "s";
+    toast.classList.add("run");
+
+    /* Trigger Wipe Reveal */
+    toast.classList.add("show");
+
+    /* Auto-hide */
+    setTimeout(function () {
+      toast.classList.remove("show");
+    }, dur);
+  }
+
+  overwolf.windows.onMessageReceived.addListener(function (e) {
+    if (!e || e.id !== "toast") return;
+    var c = e.content || {};
+    showToast(c.text, c.type, c.durationMs, c.theme, c.scale, c.opacity, c.soundEnabled);
+  });
+</script>
+</body>
+</html>
